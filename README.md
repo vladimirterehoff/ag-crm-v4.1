@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Attract Group CRM
 
-## Getting Started
+A comprehensive SaaS Management Platform for software development service businesses. This all-in-one platform handles project management, task tracking, team coordination, vacation planning, motivation tools, analytics and more.
 
-First, run the development server:
+## Features
+
+- **Project Management**: Track projects, deadlines, and progress
+- **Task Tracking**: Manage tasks with priorities, status and assignees
+- **Team Management**: Oversee team members, their workload, and availability
+- **Analytics**: Get insights into team performance and project metrics
+- **Vacations**: Plan and manage team member time off
+- **Motivation Tools**: Track and reward team achievements
+- **Financial Tracking**: Monitor project budgets and costs
+
+## Tech Stack
+
+- Next.js 15
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- React Query
+- Zustand
+
+## Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm run start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The system is designed as a multi-tenant SaaS platform that can be used both internally at Attract Group and by external clients. The frontend communicates with a backend API (to be implemented separately) that handles data persistence, authentication, and business logic.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Status
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This is the initial frontend implementation. Backend API integration will be added in future phases.
