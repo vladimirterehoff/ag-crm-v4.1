@@ -13,7 +13,7 @@ export default async function WorkspaceLayout({
   children,
   params,
 }: WorkspaceLayoutProps) {
-  const { subdomain } = params;
+  const { subdomain } = await params;
   
   return (
     <div className="flex min-h-screen bg-background">

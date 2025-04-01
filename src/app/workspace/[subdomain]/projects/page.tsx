@@ -95,11 +95,6 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
               className="pl-8 h-9 w-full md:w-[200px] lg:w-[300px] rounded-md border border-input bg-background px-8 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             />
           </div>
-          <Button asChild>
-            <Link href={getWorkspaceLink("/projects/new")}>
-              <Plus className="mr-2 h-4 w-4" /> New Project
-            </Link>
-          </Button>
         </div>
       </div>
 

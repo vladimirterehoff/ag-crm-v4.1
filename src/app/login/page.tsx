@@ -36,7 +36,7 @@ export default function LoginPage() {
       setTimeout(() => {
         toast.success("Successfully logged in!");
         // Redirect to workspace subdomain - for demo we'll use route paths
-        router.push(`/workspace/${subdomain}/dashboard`);
+        router.push(`/workspace/${subdomain}/dashboard`, { forceRefresh: true });
       }, 1000);
     } catch (error) {
       toast.error("Failed to login. Please try again.");
@@ -52,7 +52,7 @@ export default function LoginPage() {
     setTimeout(() => {
       toast.success("Successfully signed in with Google!");
       // In a real app, we would get the user's workspace from the authentication response
-      router.push(`/workspace/demo/dashboard`);
+      router.push(`/workspace/demo/dashboard`, { forceRefresh: true });
     }, 1000);
   };
 
