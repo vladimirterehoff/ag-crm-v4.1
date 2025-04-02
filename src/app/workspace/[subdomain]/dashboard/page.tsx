@@ -68,7 +68,8 @@ import {
   Info,
   X,
   ChevronDown,
-  ExternalLink
+  ExternalLink,
+  ClipboardCheck
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -121,6 +122,19 @@ export default function DashboardPage({ params }: DashboardPageProps) {
   
   // State to track selected task statuses for filtering
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["todo", "in-progress", "done"]);
+  
+  // Manager dashboard states
+  const [selectedPM, setSelectedPM] = useState("1");
+  const [managerView, setManagerView] = useState("team");
+  
+  // Time tracking data
+  const [selectedProject, setSelectedProject] = useState("all");
+  const [selectedTimeView, setSelectedTimeView] = useState("daily");
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isSelectedDateToday, setIsSelectedDateToday] = useState(false);
+  
+  // Project allocations data - enhanced to have daily allocations
+  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   
   // Dummy data for the developer dashboard
   const myTasks = [
@@ -530,12 +544,6 @@ export default function DashboardPage({ params }: DashboardPageProps) {
     { id: "3", name: "CRM Integration" },
   ];
   
-  // Time tracking data
-  const [selectedProject, setSelectedProject] = useState("all");
-  const [selectedTimeView, setSelectedTimeView] = useState("daily");
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isSelectedDateToday, setIsSelectedDateToday] = useState(false);
-  
   // Helper function to check if a date is today
   const checkIsToday = (date) => {
     const today = new Date();
@@ -567,8 +575,10 @@ export default function DashboardPage({ params }: DashboardPageProps) {
           date.getFullYear() === yesterday.getFullYear()) {
         return "Hours Yesterday";
       } else {
-        // Format like "Mar 25, 2025"
-        return `Hours: ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        // Format like "Tuesday (Mar 24, 2025)"
+        const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return `${dayOfWeek} (${dateStr})`;
       }
     }
   };
@@ -983,9 +993,6 @@ export default function DashboardPage({ params }: DashboardPageProps) {
     
     return projectMatch && statusMatch;
   });
-  
-  // Project allocations data - enhanced to have daily allocations
-  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   
   // Function to get date for a specific day offset from today
   const getDateWithOffset = (offset: number) => {
@@ -1721,17 +1728,6 @@ export default function DashboardPage({ params }: DashboardPageProps) {
             <CardContent>
               {/* Weekly project allocation calendar */}
               <div className="rounded-md border overflow-hidden">
-                {/* Project legend */}
-                <div className="flex items-center gap-4 p-4 border-b bg-muted/50">
-                  <div className="text-sm font-medium">Projects:</div>
-                  {weekProjects.map((project) => (
-                    <div key={project} className="flex items-center gap-1.5">
-                      <div className={`w-3 h-3 rounded-full ${getProjectColor(project)}`}></div>
-                      <span className="text-sm">{project}</span>
-                    </div>
-                  ))}
-                </div>
-                
                 {/* Weekly calendar grid */}
                 <div className="grid grid-cols-5 divide-x">
                   {/* Headers - Days of the week */}
@@ -1947,763 +1943,872 @@ export default function DashboardPage({ params }: DashboardPageProps) {
         </>
       );
     } else if (dashboardRole === "manager") {
-      // Sample data for Manager dashboard
-      const teamTasks = [
-        { status: "todo", count: 12, label: "To Do" },
-        { status: "in-progress", count: 8, label: "In Progress" },
-        { status: "review", count: 5, label: "In Review" },
-        { status: "done", count: 18, label: "Done" },
+      // Sample data for Manager dashboard - Team view
+      const projectManagers = [
+        { id: "1", name: "Sarah Miller", team: "Team Alpha" },
+        { id: "2", name: "Michael Chen", team: "Team Bravo" },
+        { id: "3", name: "Emily Williams", team: "Team Charlie" },
+        { id: "4", name: "David Johnson", team: "Team Delta" }
       ];
       
-      const teamMembers = [
-        { id: "1", name: "John Doe", avatar: "/avatars/user.jpg", role: "Frontend Developer", tasks: 5, overdue: 1 },
-        { id: "2", name: "Emily Williams", avatar: "/avatars/user.jpg", role: "UI/UX Designer", tasks: 3, overdue: 0 },
-        { id: "3", name: "Michael Chen", avatar: "/avatars/user.jpg", role: "Backend Developer", tasks: 7, overdue: 2 },
-        { id: "4", name: "Sarah Miller", avatar: "/avatars/user.jpg", role: "QA Engineer", tasks: 4, overdue: 0 },
+      // Team metrics data
+      const teamCommittedCompleted = [
+        { period: "Sprint 21", committed: 45, completed: 38 },
+        { period: "Sprint 22", committed: 42, completed: 40 },
+        { period: "Sprint 23", committed: 48, completed: 42 },
+        { period: "Sprint 24", committed: 50, completed: 32 }
       ];
       
-      const blockerTasks = [
-        { id: "1", title: "API integration failing", project: "Mobile Banking App", assignee: "Michael Chen", daysOverdue: 3 },
-        { id: "2", title: "Design assets missing", project: "E-commerce Website", assignee: "Emily Williams", daysOverdue: 1 },
-        { id: "3", title: "Database optimization needed", project: "CRM Integration", assignee: "John Doe", daysOverdue: 2 },
+      const deliveryHealth = [
+        { period: "Jan", score: 85 },
+        { period: "Feb", score: 82 },
+        { period: "Mar", score: 78 },
+        { period: "Apr", score: 88 }
       ];
       
-      const sprintVelocity = [
-        { sprint: "Sprint 21", planned: 45, completed: 38 },
-        { sprint: "Sprint 22", planned: 42, completed: 40 },
-        { sprint: "Sprint 23", planned: 48, completed: 42 },
-        { sprint: "Sprint 24", planned: 50, completed: 32 },
+      const escalationRate = [
+        { period: "Jan", count: 4 },
+        { period: "Feb", count: 3 },
+        { period: "Mar", count: 5 },
+        { period: "Apr", count: 2 }
       ];
       
-      const currentSprint = {
-        name: "Sprint 24",
-        startDate: "2023-05-29",
-        endDate: "2023-06-11",
-        progress: 65,
-        totalStoryPoints: 50,
-        completedStoryPoints: 32,
-        addedScope: 5,
-        removedScope: 2,
+      const releaseFrequency = [
+        { period: "Jan", count: 3 },
+        { period: "Feb", count: 4 },
+        { period: "Mar", count: 2 },
+        { period: "Apr", count: 5 }
+      ];
+      
+      const technicalMetrics = {
+        bugRate: [
+          { period: "Jan", value: 8 },
+          { period: "Feb", value: 6 },
+          { period: "Mar", value: 9 },
+          { period: "Apr", value: 5 }
+        ],
+        testCoverage: [
+          { period: "Jan", value: 72 },
+          { period: "Feb", value: 75 },
+          { period: "Mar", value: 78 },
+          { period: "Apr", value: 80 }
+        ],
+        cicdMaturity: 3.5 // Score out of 5
       };
       
-      const teamTimeLogsByDay = [
-        { day: "Monday", total: 56, target: 64, overlogged: 0, underlogged: 8 },
-        { day: "Tuesday", total: 62, target: 64, overlogged: 0, underlogged: 2 },
-        { day: "Wednesday", total: 68, target: 64, overlogged: 4, underlogged: 0 },
-        { day: "Thursday", total: 58, target: 64, overlogged: 0, underlogged: 6 },
-        { day: "Friday", total: 52, target: 64, overlogged: 0, underlogged: 12 },
+      const workloadBalance = [
+        { role: "Alex Kim (Frontend)", assigned: 25 },
+        { role: "Maria Garcia (Backend)", assigned: 30 },
+        { role: "Jamal Brown (Mobile)", assigned: 15 },
+        { role: "Sophie Patel (UI/UX)", assigned: 20 },
+        { role: "Carlos Rodriguez (QA)", assigned: 10 }
       ];
       
-      const qaStats = [
-        { id: "1", name: "John Doe", returnRate: 15, avgFixTime: "4.5h" },
-        { id: "2", name: "Emily Williams", returnRate: 8, avgFixTime: "2.3h" },
-        { id: "3", name: "Michael Chen", returnRate: 22, avgFixTime: "6.1h" },
-        { id: "4", name: "Sarah Miller", returnRate: 5, avgFixTime: "1.8h" },
+      // PMO metrics data
+      const resourceAvailability = [
+        { role: "Frontend Developer (John Smith)", used: 85, capacity: 100 },
+        { role: "Backend Developer (Linda Chen)", used: 95, capacity: 100 },
+        { role: "UI/UX Designer (Robert Davis)", used: 60, capacity: 80 },
+        { role: "QA Engineer (Patricia Lee)", used: 75, capacity: 100 },
+        { role: "DevOps Engineer (James Wilson)", used: 50, capacity: 60 }
       ];
       
-      const resourceDistribution = [
-        { id: "1", name: "John Doe", allocation: 85, status: "Optimal", projects: 2 },
-        { id: "2", name: "Emily Williams", allocation: 60, status: "Available", projects: 1 },
-        { id: "3", name: "Michael Chen", allocation: 110, status: "Overallocated", projects: 3 },
-        { id: "4", name: "Sarah Miller", allocation: 75, status: "Optimal", projects: 2 },
-        { id: "5", name: "David Johnson", allocation: 100, status: "Full", projects: 1 },
+      const aggregatedCommittedCompleted = [
+        { team: "Sarah Miller (Team Alpha)", committed: 120, completed: 105 },
+        { team: "Michael Chen (Team Bravo)", committed: 95, completed: 90 },
+        { team: "Emily Williams (Team Charlie)", committed: 80, completed: 65 },
+        { team: "David Johnson (Team Delta)", committed: 70, completed: 68 }
+      ];
+      
+      const aggregatedDeliveryHealth = [
+        { period: "Jan", score: 82 },
+        { period: "Feb", score: 79 },
+        { period: "Mar", score: 83 },
+        { period: "Apr", score: 85 }
+      ];
+      
+      const aggregatedEscalationRate = [
+        { period: "Jan", count: 12 },
+        { period: "Feb", count: 9 },
+        { period: "Mar", count: 14 },
+        { period: "Apr", count: 8 }
+      ];
+      
+      const teamTechnicalMetrics = [
+        { team: "Team Alpha", bugRate: 5, testCoverage: 80, cicdMaturity: 4.0 },
+        { team: "Team Bravo", bugRate: 7, testCoverage: 85, cicdMaturity: 3.5 },
+        { team: "Team Charlie", bugRate: 9, testCoverage: 70, cicdMaturity: 3.0 },
+        { team: "Team Delta", bugRate: 3, testCoverage: 90, cicdMaturity: 4.2 }
+      ];
+      
+      const skillGapAnalysis = [
+        { skill: "React Native", gapCount: 3, progress: 65 },
+        { skill: "Microservices", gapCount: 5, progress: 40 },
+        { skill: "Kubernetes", gapCount: 4, progress: 55 },
+        { skill: "UI/UX Design", gapCount: 2, progress: 70 }
+      ];
+      
+      const projectDocumentation = [
+        { team: "Sarah Miller (Team Alpha)", status: "In Compliance", lastUpdated: "2023-04-10" },
+        { team: "Michael Chen (Team Bravo)", status: "Needs Attention", lastUpdated: "2023-03-05" },
+        { team: "Emily Williams (Team Charlie)", status: "In Compliance", lastUpdated: "2023-04-15" },
+        { team: "David Johnson (Team Delta)", status: "In Compliance", lastUpdated: "2023-04-08" }
+      ];
+      
+      const trainingSkillGap = [
+        { team: "Sarah Miller (Team Alpha)", skill: "Cloud Architecture", progress: 80 },
+        { team: "Michael Chen (Team Bravo)", skill: "Security Practices", progress: 55 },
+        { team: "Emily Williams (Team Charlie)", skill: "React Performance", progress: 70 },
+        { team: "David Johnson (Team Delta)", skill: "Automated Testing", progress: 90 }
+      ];
+      
+      // Team view data
+      const committedCompleted = [
+        { sprint: "Sprint 22", committed: 45, completed: 40 },
+        { sprint: "Sprint 23", committed: 42, completed: 38 },
+        { sprint: "Sprint 24", committed: 50, completed: 47 }
+      ];
+
+      const teamWorkloadBalance = [
+        { role: "Alex Kim (Frontend)", allocated: 85, capacity: 100 },
+        { role: "Maria Garcia (Backend)", allocated: 90, capacity: 100 },
+        { role: "Jamal Brown (Mobile)", allocated: 75, capacity: 100 },
+        { role: "Sophie Patel (UI/UX)", allocated: 60, capacity: 80 },
+        { role: "Carlos Rodriguez (QA)", allocated: 95, capacity: 100 }
+      ];
+      
+      const roleDistribution = [
+        { role: "Frontend Developer", assigned: 25 },
+        { role: "Backend Developer", assigned: 30 },
+        { role: "UI/UX Designer", assigned: 15 },
+        { role: "QA Engineer", assigned: 20 },
+        { role: "DevOps Engineer", assigned: 10 }
       ];
       
       return (
-        <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Tasks
-                </CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{teamTasks.reduce((acc, task) => acc + task.count, 0)}</div>
-                <p className="text-xs text-muted-foreground">
-                  Across {projects.length - 1} projects
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Team Members
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{teamMembers.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {teamMembers.reduce((acc, member) => acc + member.overdue, 0)} overdue tasks
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Sprint Progress</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{currentSprint.progress}%</div>
-                <div className="mt-2">
-                  <Progress value={currentSprint.progress} className="h-2" />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {currentSprint.completedStoryPoints} of {currentSprint.totalStoryPoints} story points
-                  </p>
+        <div className="space-y-4">
+          <Tabs defaultValue="team" className="w-full" onValueChange={setManagerView}>
+            <div className="flex justify-between items-center mb-4">
+              <TabsList className="w-[280px] bg-muted p-0.5">
+                <TabsTrigger 
+                  value="team" 
+                  className="flex-1 data-[state=active]:bg-background rounded-sm"
+                >
+                  Team Dashboard
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="pmo" 
+                  className="flex-1 data-[state=active]:bg-background rounded-sm"
+                >
+                  PMO Dashboard
+                </TabsTrigger>
+              </TabsList>
+              
+              {managerView === "team" && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Project Manager:</span>
+                  <Select value={selectedPM} onValueChange={setSelectedPM}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select a PM" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectManagers.map((pm) => (
+                        <SelectItem key={pm.id} value={pm.id}>
+                          {pm.name} ({pm.team})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </div>
+            
+            <TabsContent value="team" className="space-y-4">
+              <h3 className="text-xl font-semibold mb-4">
+                {selectedPM ? 
+                  `${projectManagers.find(pm => pm.id === selectedPM)?.name}'s Dashboard (${projectManagers.find(pm => pm.id === selectedPM)?.team})` : 
+                  "Select a Project Manager"}
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Weekly Hours
-                </CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                  <CardHeader>
+                    <CardTitle className="text-base">Committed vs. Completed</CardTitle>
+                    <CardDescription>Tasks committed vs. completed by sprint</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {teamTimeLogsByDay.reduce((acc, day) => acc + day.total, 0)}h
-                </div>
-                <div className="mt-2">
-                  <Progress value={teamTimeLogsByDay.reduce((acc, day) => acc + day.total, 0) / teamTimeLogsByDay.reduce((acc, day) => acc + day.target, 0) * 100} className="h-2" />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {Math.round(teamTimeLogsByDay.reduce((acc, day) => acc + day.total, 0) / teamTimeLogsByDay.reduce((acc, day) => acc + day.target, 0) * 100)}% of target
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Team Task Overview */}
-          <div className="grid gap-4 md:grid-cols-7 mt-4">
-            <Card className="md:col-span-4">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Team Task Overview</CardTitle>
-                    <CardDescription>
-                      Current task distribution and status
-                    </CardDescription>
-                  </div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={getWorkspaceLink("/tasks")}>
-                      View All Tasks
-                    </Link>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-4 gap-4 mb-6">
-                  {teamTasks.map((task) => (
-                    <Card key={task.status} className="bg-muted/50">
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold">{task.count}</div>
-                          <div className="text-sm font-medium mt-1">{task.label}</div>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="space-y-6">
+                      {teamCommittedCompleted.map((sprint) => (
+                        <div key={sprint.period} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">{sprint.period}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {Math.round((sprint.completed / sprint.committed) * 100)}% completed
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Committed: {sprint.committed}</span>
+                              <span>Completed: {sprint.completed}</span>
+                            </div>
+                            <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
+                              <div className="absolute top-0 left-0 h-full bg-primary" 
+                                style={{ width: `${Math.min(Math.round((sprint.completed / sprint.committed) * 100), 100)}%` }} />
+                            </div>
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      ))}
                 </div>
+              </CardContent>
+            </Card>
                 
-                <h3 className="text-sm font-medium mb-2">Top Blockers / Overdue Tasks</h3>
-                <div className="space-y-4">
-                  {blockerTasks.map((task) => (
-                    <div key={task.id} className="flex justify-between items-start gap-4 border-b pb-3 last:border-0 last:pb-0">
-                      <div>
-                        <h4 className="font-medium flex items-center">
-                          <span className="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
-                          {task.title}
-                        </h4>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          <span>{task.project}</span>
-                          <span className="mx-2">•</span>
-                          <span>Assigned to {task.assignee}</span>
+            <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Delivery Health Trend</CardTitle>
+                    <CardDescription>Overall team delivery health score</CardDescription>
+              </CardHeader>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="flex items-center h-full">
+                      <div className="w-full">
+                        <div className="flex justify-between mb-6">
+                          <div>
+                            <div className="text-3xl font-bold">{deliveryHealth[deliveryHealth.length - 1].score}/100</div>
+                            <div className="text-sm text-muted-foreground">Current health score</div>
+                </div>
+                          <Badge 
+                            className={deliveryHealth[deliveryHealth.length - 1].score > deliveryHealth[deliveryHealth.length - 2].score 
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                              : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+                            }
+                          >
+                            {deliveryHealth[deliveryHealth.length - 1].score > deliveryHealth[deliveryHealth.length - 2].score 
+                              ? "Improving" 
+                              : "Declining"
+                            }
+                          </Badge>
+                        </div>
+                        <div className="space-y-4">
+                          {deliveryHealth.map((period, index) => (
+                            <div key={period.period} className="space-y-1">
+                              <div className="flex justify-between text-xs">
+                                <span>{period.period}</span>
+                                <span className={
+                                  period.score >= 90 ? "text-green-600" :
+                                  period.score >= 75 ? "text-amber-600" :
+                                  "text-red-600"
+                                }>
+                                  {period.score}
+                                </span>
+                              </div>
+                              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className={
+                                    period.score >= 90 ? "bg-green-500" :
+                                    period.score >= 75 ? "bg-amber-500" :
+                                    "bg-red-500"
+                                  } 
+                                  style={{ width: `${Math.min(period.score, 100)}%`, height: '100%' }} 
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <Badge variant="destructive">{task.daysOverdue} days overdue</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          
+                <Card>
+              <CardHeader>
+                    <CardTitle className="text-base">Escalation Rate</CardTitle>
+                    <CardDescription>Number of client escalations over time</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="flex items-center h-full">
+                      <div className="w-full">
+                        <div className="flex justify-between mb-6">
+                  <div>
+                            <div className="text-3xl font-bold">{escalationRate[escalationRate.length - 1].count}</div>
+                            <div className="text-sm text-muted-foreground">Current month escalations</div>
+                  </div>
+                          <Badge 
+                            className={escalationRate[escalationRate.length - 1].count < escalationRate[escalationRate.length - 2].count 
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                            }
+                          >
+                            {escalationRate[escalationRate.length - 1].count < escalationRate[escalationRate.length - 2].count 
+                              ? `↓ ${escalationRate[escalationRate.length - 2].count - escalationRate[escalationRate.length - 1].count}` 
+                              : `↑ ${escalationRate[escalationRate.length - 1].count - escalationRate[escalationRate.length - 2].count}`
+                            }
+                          </Badge>
+                </div>
+                        
+                        <div className="relative h-[120px] mt-6">
+                          <svg width="100%" height="100%" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            {/* Draw the line */}
+                            <polyline
+                              points={escalationRate.map((data, i) => 
+                                `${(i / (escalationRate.length - 1)) * 400},${120 - (data.count / Math.max(...escalationRate.map(e => e.count))) * 100}`
+                              ).join(' ')}
+                              fill="none"
+                              stroke={escalationRate[0].count > escalationRate[escalationRate.length - 1].count ? "#22c55e" : "#ef4444"}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            
+                            {/* Add dots for each data point */}
+                            {escalationRate.map((data, i) => (
+                              <circle
+                                key={i}
+                                cx={(i / (escalationRate.length - 1)) * 400}
+                                cy={120 - (data.count / Math.max(...escalationRate.map(e => e.count))) * 100}
+                                r="4"
+                                fill={escalationRate[0].count > escalationRate[escalationRate.length - 1].count ? "#22c55e" : "#ef4444"}
+                              />
+                            ))}
+                          </svg>
+                </div>
+                
+                        {/* Month labels */}
+                        <div className="flex justify-between mt-2">
+                          {escalationRate.map((data, i) => (
+                            <div key={i} className="text-center">
+                              <span className="text-xs text-muted-foreground">{data.period}</span>
+                        </div>
+                          ))}
+                      </div>
                     </div>
-                  ))}
                 </div>
               </CardContent>
             </Card>
             
-            {/* Sprint Overview */}
-            <Card className="md:col-span-3">
+                <Card>
               <CardHeader>
-                <CardTitle>Sprint Overview</CardTitle>
-                <CardDescription>
-                  Sprint {currentSprint.name} • {new Date(currentSprint.startDate).toLocaleDateString()} - {new Date(currentSprint.endDate).toLocaleDateString()}
-                </CardDescription>
+                    <CardTitle className="text-base">Release Frequency</CardTitle>
+                    <CardDescription>Number of releases over time</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-medium">Progress</h3>
-                    <span className="text-sm">{currentSprint.progress}%</span>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="flex items-center h-full">
+                      <div className="w-full">
+                        <div className="flex justify-between mb-6">
+                          <div>
+                            <div className="text-3xl font-bold">{releaseFrequency[releaseFrequency.length - 1].count}</div>
+                            <div className="text-sm text-muted-foreground">Current month releases</div>
                   </div>
-                  <Progress value={currentSprint.progress} className="h-2" />
+                          <Badge 
+                            className={releaseFrequency[releaseFrequency.length - 1].count > releaseFrequency[releaseFrequency.length - 2].count 
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                              : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+                            }
+                          >
+                            {releaseFrequency[releaseFrequency.length - 1].count > releaseFrequency[releaseFrequency.length - 2].count
+                              ? `↑ ${releaseFrequency[releaseFrequency.length - 1].count - releaseFrequency[releaseFrequency.length - 2].count}` 
+                              : `↓ ${releaseFrequency[releaseFrequency.length - 2].count - releaseFrequency[releaseFrequency.length - 1].count}`
+                            }
+                          </Badge>
                 </div>
                 
-                <div className="flex justify-between items-center mb-4">
-                  <div className="border rounded-md p-3 flex-1 mr-2 text-center">
-                    <div className="text-2xl font-bold">{currentSprint.totalStoryPoints}</div>
-                    <div className="text-xs text-muted-foreground">Total Points</div>
+                        <div className="relative h-[120px] mt-6">
+                          <svg width="100%" height="100%" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            {/* Draw the line */}
+                            <polyline
+                              points={releaseFrequency.map((data, i) => 
+                                `${(i / (releaseFrequency.length - 1)) * 400},${120 - (data.count / Math.max(...releaseFrequency.map(e => e.count))) * 100}`
+                              ).join(' ')}
+                              fill="none"
+                              stroke="#0ea5e9"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            
+                            {/* Add dots for each data point */}
+                            {releaseFrequency.map((data, i) => (
+                              <circle
+                                key={i}
+                                cx={(i / (releaseFrequency.length - 1)) * 400}
+                                cy={120 - (data.count / Math.max(...releaseFrequency.map(e => e.count))) * 100}
+                                r="4"
+                                fill="#0ea5e9"
+                              />
+                            ))}
+                          </svg>
                   </div>
-                  <div className="border rounded-md p-3 flex-1 ml-2 text-center">
-                    <div className="text-2xl font-bold">{currentSprint.completedStoryPoints}</div>
-                    <div className="text-xs text-muted-foreground">Completed</div>
+                        
+                        {/* Month labels */}
+                        <div className="flex justify-between mt-2">
+                          {releaseFrequency.map((data, i) => (
+                            <div key={i} className="text-center">
+                              <span className="text-xs text-muted-foreground">{data.period}</span>
                   </div>
+                          ))}
+                </div>
+                  </div>
+                  </div>
+                  </CardContent>
+                </Card>
                 </div>
                 
-                <div className="space-y-2 mb-4">
-                  <h3 className="text-sm font-medium">Scope Changes</h3>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Added</span>
-                    <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                      +{currentSprint.addedScope} points
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Removed</span>
-                    <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
-                      -{currentSprint.removedScope} points
-                    </Badge>
-                  </div>
-                </div>
-                
-                <h3 className="text-sm font-medium mb-2">Velocity Trend</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="text-base">Technical Metrics</CardTitle>
+                    <CardDescription>Bug rate, test coverage, and CI/CD maturity</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="grid grid-cols-3 gap-4 h-full">
                 <div className="space-y-2">
-                  {sprintVelocity.map((sprint) => (
-                    <div key={sprint.sprint} className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">{sprint.sprint}</span>
-                        <span className="text-sm font-medium">{Math.round(sprint.completed / sprint.planned * 100)}%</span>
+                        <h4 className="text-sm font-medium text-center">Bug Rate</h4>
+                        <div className="relative pt-5">
+                          <div className="text-center">
+                            <span className="text-3xl font-bold">{technicalMetrics.bugRate[technicalMetrics.bugRate.length - 1].value}</span>
+                            <span className="text-sm text-muted-foreground ml-1">bugs/sprint</span>
                       </div>
-                      <div className="w-full bg-muted rounded-full h-1.5">
-                        <div 
-                          className="bg-primary h-1.5 rounded-full" 
-                          style={{ width: `${Math.round(sprint.completed / sprint.planned * 100)}%` }} 
+                          <div className="mt-4 space-y-2">
+                            {technicalMetrics.bugRate.map((period) => (
+                              <div key={period.period} className="flex items-center gap-2">
+                                <span className="text-xs w-8">{period.period}</span>
+                                <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
+                                  <div 
+                                    className="bg-red-500 h-full" 
+                                    style={{ width: `${(period.value / 10) * 100}%` }} 
                         />
                       </div>
+                                <span className="text-xs">{period.value}</span>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
           </div>
-          
-          {/* Team Time Logs */}
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Team Time Logs Summary</CardTitle>
-              <CardDescription>
-                Weekly overview of team time tracking
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Day</TableHead>
-                      <TableHead>Total Hours</TableHead>
-                      <TableHead>Target</TableHead>
-                      <TableHead>Difference</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {teamTimeLogsByDay.map((day) => (
-                      <TableRow key={day.day}>
-                        <TableCell>{day.day}</TableCell>
-                        <TableCell>{day.total}h</TableCell>
-                        <TableCell>{day.target}h</TableCell>
-                        <TableCell>
-                          {day.overlogged > 0 ? 
-                            <span className="text-green-600">+{day.overlogged}h</span> : 
-                            <span className="text-red-600">-{day.underlogged}h</span>
-                          }
-                        </TableCell>
-                        <TableCell>
-                          {day.overlogged > 0 ? 
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Over-logged</Badge> : 
-                            <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Under-logged</Badge>
-                          }
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Estimation Accuracy Heatmap</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-center py-6">
-                    <div className="text-muted-foreground">
-                      <BarChart3 className="h-16 w-16 mx-auto mb-2" />
-                      <p>Estimation accuracy visualization will be displayed here</p>
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-center">Test Coverage</h4>
+                        <div className="relative flex flex-col items-center justify-center h-[180px]">
+                          <div className="relative w-32 h-32 rounded-full border-8 border-muted flex items-center justify-center">
+                            <div 
+                              className="absolute top-0 left-0 w-full h-full rounded-full border-8 border-green-500"
+                              style={{ 
+                                clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.cos(2 * Math.PI * technicalMetrics.testCoverage[technicalMetrics.testCoverage.length - 1].value / 100)}% ${50 - 50 * Math.sin(2 * Math.PI * technicalMetrics.testCoverage[technicalMetrics.testCoverage.length - 1].value / 100)}%, ${technicalMetrics.testCoverage[technicalMetrics.testCoverage.length - 1].value >= 50 ? '100% 0%, 100% 100%, 0% 100%, 0% 0%' : ''})` 
+                              }}
+                            />
+                            <div className="text-center">
+                              <div className="text-2xl font-bold">{technicalMetrics.testCoverage[technicalMetrics.testCoverage.length - 1].value}%</div>
+                              <div className="text-xs text-muted-foreground">covered</div>
                     </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Weekly Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="py-4">
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Total Hours Logged</span>
-                          <span className="font-medium">{teamTimeLogsByDay.reduce((acc, day) => acc + day.total, 0)}h</span>
                         </div>
-                        <Progress value={teamTimeLogsByDay.reduce((acc, day) => acc + day.total, 0) / teamTimeLogsByDay.reduce((acc, day) => acc + day.target, 0) * 100} className="h-2" />
+                          <div className="mt-3 text-sm text-green-600">
+                            ↑ {technicalMetrics.testCoverage[technicalMetrics.testCoverage.length - 1].value - technicalMetrics.testCoverage[0].value}% since Jan
+                      </div>
+                        </div>
                       </div>
                       
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Target Hours</span>
-                          <span className="font-medium">{teamTimeLogsByDay.reduce((acc, day) => acc + day.target, 0)}h</span>
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-center">CI/CD Maturity</h4>
+                        <div className="flex flex-col items-center justify-center h-[180px]">
+                          <div className="w-full space-y-2">
+                            <div className="text-center mb-4">
+                              <div className="text-3xl font-bold">{technicalMetrics.cicdMaturity}</div>
+                              <div className="text-sm text-muted-foreground">out of 5</div>
                         </div>
-                        <Progress value={100} className="h-2" />
+                            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className="bg-blue-500 h-full" 
+                                style={{ width: `${(technicalMetrics.cicdMaturity / 5) * 100}%` }} 
+                              />
                       </div>
-                      
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Difference</span>
-                          <span className={`font-medium ${
-                            teamTimeLogsByDay.reduce((acc, day) => acc + day.total, 0) > teamTimeLogsByDay.reduce((acc, day) => acc + day.target, 0) ? 
-                            "text-green-600" : "text-red-600"
-                          }`}>
-                            {teamTimeLogsByDay.reduce((acc, day) => acc + day.total, 0) > teamTimeLogsByDay.reduce((acc, day) => acc + day.target, 0) ?
-                            "+" : "-"}
-                            {Math.abs(teamTimeLogsByDay.reduce((acc, day) => acc + day.total, 0) - teamTimeLogsByDay.reduce((acc, day) => acc + day.target, 0))}h
-                          </span>
-                        </div>
-                      </div>
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Basic</span>
+                              <span>Advanced</span>
                     </div>
-                  </CardContent>
-                </Card>
+                            <div className="mt-4">
+                              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                {technicalMetrics.cicdMaturity >= 4.5 ? "Expert" : 
+                                 technicalMetrics.cicdMaturity >= 3.5 ? "Advanced" : 
+                                 technicalMetrics.cicdMaturity >= 2.5 ? "Intermediate" : "Basic"}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
               </div>
             </CardContent>
           </Card>
           
-          {/* QA Feedback Stats & Resource Distribution */}
-          <div className="grid gap-4 md:grid-cols-2 mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>QA Feedback Stats</CardTitle>
-                <CardDescription>
-                  QA return rates and fix turnaround times
-                </CardDescription>
+                    <CardTitle className="text-base">Workload Balance</CardTitle>
+                    <CardDescription>Task distribution by role</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Developer</TableHead>
-                      <TableHead>Return Rate</TableHead>
-                      <TableHead>Avg. Fix Time</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {qaStats.map((dev) => (
-                      <TableRow key={dev.id}>
-                        <TableCell>{dev.name}</TableCell>
-                        <TableCell>{dev.returnRate}%</TableCell>
-                        <TableCell>{dev.avgFixTime}</TableCell>
-                        <TableCell>
-                          <Badge className={
-                            dev.returnRate < 10 ? 
-                            "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : 
-                            dev.returnRate < 20 ? 
-                            "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" : 
-                            "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                          }>
-                            {dev.returnRate < 10 ? "Good" : dev.returnRate < 20 ? "Average" : "Needs Improvement"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="space-y-6">
+                      {teamWorkloadBalance.map((role) => (
+                        <div key={role.role} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium truncate max-w-[65%]">{role.role}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {Math.round((role.allocated / role.capacity) * 100)}% allocated
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Allocated: {role.allocated}h</span>
+                              <span>Capacity: {role.capacity}h</span>
+                            </div>
+                            <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className={`absolute top-0 left-0 h-full ${role.allocated > role.capacity * 0.9 ? 'bg-red-500' : 'bg-primary'}`}
+                                style={{ width: `${Math.min((role.allocated / role.capacity) * 100, 100)}%` }} 
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
               </CardContent>
             </Card>
+              </div>
+            </TabsContent>
             
+            <TabsContent value="pmo" className="space-y-4">
+              <h3 className="text-xl font-semibold mb-4">PMO Dashboard</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Resource Distribution</CardTitle>
-                <CardDescription>
-                  Developer capacity and allocation
-                </CardDescription>
+                    <CardTitle className="text-base">Resource Availability</CardTitle>
+                    <CardDescription>Utilization vs. capacity by role</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-5">
-                  {resourceDistribution.map((resource) => (
-                    <div key={resource.id} className="space-y-1">
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="space-y-6">
+                      {resourceAvailability.map((resource) => (
+                        <div key={resource.role} className="space-y-1 pr-1">
                       <div className="flex justify-between items-center">
-                        <span className="flex items-center">
-                          <div className="w-2 h-2 rounded-full mr-2 
-                            {resource.status === 'Overallocated' ? 'bg-red-500' : 
-                             resource.status === 'Full' ? 'bg-amber-500' : 
-                             resource.status === 'Optimal' ? 'bg-green-500' : 'bg-blue-500'}"></div>
-                          {resource.name}
+                            <span className="text-sm font-medium truncate max-w-[65%]">{resource.role}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {Math.round((resource.used / resource.capacity) * 100)}% utilized
                         </span>
-                        <Badge className={
-                          resource.status === "Overallocated" ? 
-                          "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" : 
-                          resource.status === "Full" ? 
-                          "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300" : 
-                          resource.status === "Optimal" ? 
-                          "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : 
-                          "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
-                        }>
-                          {resource.status}
-                        </Badge>
                       </div>
-                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                        <span>{resource.projects} projects</span>
-                        <span>{resource.allocation}% allocated</span>
-                      </div>
-                      <Progress 
-                        value={resource.allocation} 
-                        className={`h-2 ${
-                          resource.allocation > 100 ? "bg-red-200" : ""
-                        }`}
-                      />
+                          <div className="h-4 w-full bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${
+                                (resource.used / resource.capacity) > 0.9 ? "bg-red-500" :
+                                (resource.used / resource.capacity) > 0.75 ? "bg-amber-500" :
+                                "bg-green-500"
+                              }`}
+                              style={{ width: `${(resource.used / resource.capacity) * 100}%` }} 
+                            />
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Used: {resource.used}h</span>
+                            <span>Capacity: {resource.capacity}h</span>
+                          </div>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </>
+                
+            <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Aggregated Committed vs. Completed</CardTitle>
+                    <CardDescription>Tasks completion across all teams</CardDescription>
+              </CardHeader>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="space-y-6">
+                      {aggregatedCommittedCompleted.map((team) => (
+                        <div key={team.team} className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium truncate max-w-[65%]">{team.team}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {Math.round((team.completed / team.committed) * 100)}% completed
+                            </span>
+                </div>
+                          <div className="relative h-6 w-full bg-muted rounded-md overflow-hidden">
+                            <div className="absolute top-0 left-0 h-full bg-primary flex items-center" 
+                              style={{ width: `${Math.min(Math.round((team.completed / team.committed) * 100), 100)}%` }}>
+                              <span className="text-xs text-white ml-2">
+                                {team.completed}/{team.committed}
+                              </span>
+                </div>
+                          </div>
+                        </div>
+                      ))}
+                </div>
+              </CardContent>
+            </Card>
+          
+                <Card>
+            <CardHeader>
+                    <CardTitle className="text-base">Aggregated Delivery Health</CardTitle>
+                    <CardDescription>Overall organization delivery health</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="flex items-center h-full">
+                      <div className="w-full">
+                        <div className="flex justify-between mb-6">
+                <div>
+                            <div className="text-3xl font-bold">{aggregatedDeliveryHealth[aggregatedDeliveryHealth.length - 1].score}/100</div>
+                            <div className="text-sm text-muted-foreground">Organization health score</div>
+                </div>
+                          <Badge 
+                            className={aggregatedDeliveryHealth[aggregatedDeliveryHealth.length - 1].score > aggregatedDeliveryHealth[aggregatedDeliveryHealth.length - 2].score 
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                              : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+                            }
+                          >
+                            {aggregatedDeliveryHealth[aggregatedDeliveryHealth.length - 1].score > aggregatedDeliveryHealth[aggregatedDeliveryHealth.length - 2].score 
+                              ? "Improving" 
+                              : "Declining"
+                            }
+                        </Badge>
+                        </div>
+                        <div className="space-y-4">
+                          {aggregatedDeliveryHealth.map((period, index) => (
+                            <div key={period.period} className="space-y-1">
+                              <div className="flex justify-between text-xs">
+                                <span>{period.period}</span>
+                                <span className={
+                                  period.score >= 90 ? "text-green-600" :
+                                  period.score >= 75 ? "text-amber-600" :
+                                  "text-red-600"
+                                }>
+                                  {period.score}
+                                </span>
+                              </div>
+                              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className={
+                                    period.score >= 90 ? "bg-green-500" :
+                                    period.score >= 75 ? "bg-amber-500" :
+                                    "bg-red-500"
+                                  } 
+                                  style={{ width: `${Math.min(period.score, 100)}%`, height: '100%' }} 
+                                />
+                        </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+            </CardContent>
+          </Card>
+          
+                <Card>
+              <CardHeader>
+                    <CardTitle className="text-base">Aggregated Escalation Rate</CardTitle>
+                    <CardDescription>Organization-wide client escalations</CardDescription>
+              </CardHeader>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="flex items-center h-full">
+                      <div className="w-full">
+                        <div className="flex justify-between mb-6">
+                          <div>
+                            <div className="text-3xl font-bold">{aggregatedEscalationRate[aggregatedEscalationRate.length - 1].count}</div>
+                            <div className="text-sm text-muted-foreground">Current month escalations</div>
+                          </div>
+                          <Badge 
+                            className={aggregatedEscalationRate[aggregatedEscalationRate.length - 1].count < aggregatedEscalationRate[aggregatedEscalationRate.length - 2].count 
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                            }
+                          >
+                            {aggregatedEscalationRate[aggregatedEscalationRate.length - 1].count < aggregatedEscalationRate[aggregatedEscalationRate.length - 2].count 
+                              ? `↓ ${aggregatedEscalationRate[aggregatedEscalationRate.length - 2].count - aggregatedEscalationRate[aggregatedEscalationRate.length - 1].count}` 
+                              : `↑ ${aggregatedEscalationRate[aggregatedEscalationRate.length - 1].count - aggregatedEscalationRate[aggregatedEscalationRate.length - 2].count}`
+                            }
+                          </Badge>
+                        </div>
+                        
+                        <div className="relative h-[120px] mt-6">
+                          <svg width="100%" height="100%" viewBox="0 0 400 120" preserveAspectRatio="none">
+                            {/* Draw the line */}
+                            <polyline
+                              points={aggregatedEscalationRate.map((data, i) => 
+                                `${(i / (aggregatedEscalationRate.length - 1)) * 400},${120 - (data.count / Math.max(...aggregatedEscalationRate.map(e => e.count))) * 100}`
+                              ).join(' ')}
+                              fill="none"
+                              stroke={aggregatedEscalationRate[0].count > aggregatedEscalationRate[aggregatedEscalationRate.length - 1].count ? "#22c55e" : "#ef4444"}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            
+                            {/* Add dots for each data point */}
+                            {aggregatedEscalationRate.map((data, i) => (
+                              <circle
+                                key={i}
+                                cx={(i / (aggregatedEscalationRate.length - 1)) * 400}
+                                cy={120 - (data.count / Math.max(...aggregatedEscalationRate.map(e => e.count))) * 100}
+                                r="4"
+                                fill={aggregatedEscalationRate[0].count > aggregatedEscalationRate[aggregatedEscalationRate.length - 1].count ? "#22c55e" : "#ef4444"}
+                              />
+                            ))}
+                          </svg>
+                        </div>
+                        
+                        {/* Month labels */}
+                        <div className="flex justify-between mt-2">
+                          {aggregatedEscalationRate.map((data, i) => (
+                            <div key={i} className="text-center">
+                              <span className="text-xs text-muted-foreground">{data.period}</span>
+                            </div>
+                          ))}
+                        </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+              </div>
+            
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <Card>
+              <CardHeader>
+                    <CardTitle className="text-base">Aggregated Technical Metrics</CardTitle>
+                    <CardDescription>Bug rate, test coverage by team</CardDescription>
+              </CardHeader>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                <div className="space-y-4">
+                      <div className="border-b pb-3">
+                        <h4 className="text-sm font-medium mb-2">Bug Rate (bugs/sprint)</h4>
+                        {teamTechnicalMetrics.map((team) => (
+                          <div key={`${team.team}-bug`} className="flex items-center space-x-2 mb-2">
+                            <div className="w-20 text-xs truncate">{team.team}</div>
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full ${
+                                  team.bugRate > 8 ? "bg-red-500" :
+                                  team.bugRate > 5 ? "bg-amber-500" :
+                                  "bg-green-500"
+                                }`}
+                                style={{ width: `${(team.bugRate / 10) * 100}%` }} 
+                        />
+                      </div>
+                            <div className="w-8 text-xs text-right">{team.bugRate}</div>
+                      </div>
+                        ))}
+                      </div>
+                      
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Test Coverage (%)</h4>
+                        {teamTechnicalMetrics.map((team) => (
+                          <div key={`${team.team}-coverage`} className="flex items-center space-x-2 mb-2">
+                            <div className="w-20 text-xs truncate">{team.team}</div>
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full ${
+                                  team.testCoverage > 80 ? "bg-green-500" :
+                                  team.testCoverage > 70 ? "bg-amber-500" :
+                                  "bg-red-500"
+                                }`}
+                                style={{ width: `${Math.min(team.testCoverage, 100)}%` }} 
+                              />
+                            </div>
+                            <div className="w-8 text-xs text-right">{team.testCoverage}%</div>
+                    </div>
+                  ))}
+                      </div>
+                </div>
+              </CardContent>
+            </Card>
+          
+                <Card>
+            <CardHeader>
+                    <CardTitle className="text-base">Training & Skill Gap Analysis</CardTitle>
+                    <CardDescription>Progress in closing skill gaps</CardDescription>
+            </CardHeader>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="space-y-5">
+                      {skillGapAnalysis.map((skill) => (
+                        <div key={skill.skill} className="space-y-1">
+                          <div className="flex justify-between items-center flex-wrap">
+                            <div className="max-w-[70%]">
+                              <span className="text-sm font-medium mr-1 truncate inline-block">{skill.skill}</span>
+                              <Badge variant="outline" className="ml-0 mt-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                {skill.gapCount} gaps
+                              </Badge>
+                    </div>
+                            <span className="text-sm">{skill.progress}% filled</span>
+                          </div>
+                          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="bg-blue-500 h-full"
+                              style={{ width: `${Math.min(skill.progress, 100)}%` }} 
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Project Documentation & Governance</CardTitle>
+                    <CardDescription>Compliance status by team</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[250px] p-4 overflow-hidden">
+                    <div className="space-y-3">
+                      {projectDocumentation.map((team) => (
+                        <div key={team.team} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
+                          <div className="flex-1 mr-2">
+                            <div className="text-sm font-medium truncate">{team.team}</div>
+                            <div className="text-xs text-muted-foreground">Last updated: {new Date(team.lastUpdated).toLocaleDateString()}</div>
+                    </div>
+                          <Badge 
+                            className={
+                              team.status === "In Compliance" 
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                            }
+                          >
+                            {team.status}
+                          </Badge>
+              </div>
+                      ))}
+                    </div>
+                    <div className="mt-6 pt-3 border-t">
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Overall Compliance</span>
+                        <Badge 
+                          className={
+                            (projectDocumentation.filter(t => t.status === "In Compliance").length / projectDocumentation.length) >= 0.75
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                              : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+                          }
+                        >
+                          {projectDocumentation.filter(t => t.status === "In Compliance").length}/{projectDocumentation.length} Teams
+                        </Badge>
+                    </div>
+                      <div className="mt-2 h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className={
+                            (projectDocumentation.filter(t => t.status === "In Compliance").length / projectDocumentation.length) >= 0.75
+                              ? "bg-green-500"
+                              : "bg-amber-500"
+                          }
+                          style={{ width: `${(projectDocumentation.filter(t => t.status === "In Compliance").length / projectDocumentation.length) * 100}%`, height: '100%' }} 
+                      />
+                    </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                  </div>
+            </TabsContent>
+          </Tabs>
+              </div>
       );
     } else if (dashboardRole === "executive") {
-      // Sample data for Executive dashboard
-      const projectHealth = [
-        { id: "1", name: "E-commerce Website", status: "on-track", progress: 85, budget: { total: 320, used: 260 } },
-        { id: "2", name: "Mobile Banking App", status: "at-risk", progress: 62, budget: { total: 480, used: 350 } },
-        { id: "3", name: "CRM Integration", status: "delayed", progress: 45, budget: { total: 240, used: 180 } },
-        { id: "4", name: "Healthcare Platform", status: "on-track", progress: 78, budget: { total: 400, used: 290 } },
-      ];
-      
-      const teamProductivity = [
-        { week: "Week 1", avgHours: 35, output: 92 },
-        { week: "Week 2", avgHours: 38, output: 95 },
-        { week: "Week 3", avgHours: 37, output: 90 },
-        { week: "Week 4", avgHours: 40, output: 98 },
-      ];
-      
-      const teamOutput = [
-        { team: "Frontend Team", output: 87, target: 90 },
-        { team: "Backend Team", output: 92, target: 90 },
-        { team: "Design Team", output: 78, target: 85 },
-        { team: "QA Team", output: 95, target: 90 },
-      ];
-      
-      const financialSummary = {
-        totalLogged: 960,
-        billable: 840,
-        nonBillable: 120,
-        utilization: 87.5,
-        monthlySummary: [
-          { month: "Jan", logged: 890, billable: 780 },
-          { month: "Feb", logged: 920, billable: 810 },
-          { month: "Mar", logged: 960, billable: 840 },
-        ]
-      };
-      
-      const getStatusColor = (status: string) => {
-        switch(status) {
-          case "on-track":
-            return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-          case "at-risk":
-            return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-          case "delayed":
-            return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-          default:
-            return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-        }
-      };
-      
+      // Executive dashboard placeholder with "Coming soon" message
       return (
-        <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Active Projects
-                </CardTitle>
-                <Briefcase className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{projectHealth.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {projectHealth.filter(p => p.status === "on-track").length} on track, {projectHealth.filter(p => p.status !== "on-track").length} need attention
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Team Utilization
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{financialSummary.utilization}%</div>
-                <div className="mt-2">
-                  <Progress value={financialSummary.utilization} className="h-2" />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {financialSummary.billable}h billable / {financialSummary.totalLogged}h total
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg. Hours/Dev</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{teamProductivity[teamProductivity.length - 1].avgHours}h</div>
-                <p className="text-xs text-muted-foreground">
-                  {teamProductivity[teamProductivity.length - 1].avgHours > teamProductivity[teamProductivity.length - 2].avgHours ? 
-                    `+${(teamProductivity[teamProductivity.length - 1].avgHours - teamProductivity[teamProductivity.length - 2].avgHours).toFixed(1)}h` : 
-                    `${(teamProductivity[teamProductivity.length - 1].avgHours - teamProductivity[teamProductivity.length - 2].avgHours).toFixed(1)}h`} from last week
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Budget Utilization
-                </CardTitle>
-                <BarChart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {Math.round(projectHealth.reduce((acc, project) => acc + project.budget.used, 0) / 
-                    projectHealth.reduce((acc, project) => acc + project.budget.total, 0) * 100)}%
-                </div>
-                <div className="mt-2">
-                  <Progress 
-                    value={projectHealth.reduce((acc, project) => acc + project.budget.used, 0) / 
-                      projectHealth.reduce((acc, project) => acc + project.budget.total, 0) * 100} 
-                    className="h-2" 
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {projectHealth.reduce((acc, project) => acc + project.budget.used, 0)}h of {projectHealth.reduce((acc, project) => acc + project.budget.total, 0)}h total budget
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Project Health Summary */}
-          <Card className="mt-4">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Project Health Summary</CardTitle>
-                  <CardDescription>
-                    Status of active projects
-                  </CardDescription>
-                </div>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={getWorkspaceLink("/projects")}>
-                    View All Projects
-                  </Link>
-                </Button>
+        <div className="flex items-center justify-center h-[400px]">
+          <div className="text-center">
+            <h3 className="text-xl font-medium mb-2">Executive Dashboard</h3>
+            <p className="text-muted-foreground mb-4">Coming soon</p>
+            <Button variant="outline" onClick={() => setDashboardRole("developer")}>Switch to Developer View</Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Project</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Budget Used</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {projectHealth.map((project) => (
-                    <TableRow key={project.id}>
-                      <TableCell className="font-medium">{project.name}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(project.status)}>
-                          {project.status === "on-track" ? "On Track" : 
-                            project.status === "at-risk" ? "At Risk" : "Delayed"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={project.progress} className="h-2 w-[100px]" />
-                          <span className="text-xs">{project.progress}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress 
-                            value={project.budget.used / project.budget.total * 100} 
-                            className="h-2 w-[100px]" 
-                          />
-                          <span className="text-xs">{project.budget.used}h / {project.budget.total}h</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="sm">
-                          <Link href={getWorkspaceLink(`/projects/${project.id}`)}>
-                            View
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          
-          {/* Team Productivity Trends */}
-          <div className="grid gap-4 md:grid-cols-7 mt-4">
-            <Card className="md:col-span-4">
-              <CardHeader>
-                <CardTitle>Team Productivity Trends</CardTitle>
-                <CardDescription>
-                  Weekly average hours and output
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px]">
-                <div className="flex h-full items-center justify-center">
-                  <div className="text-muted-foreground flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    <span>Productivity chart will be displayed here</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="md:col-span-3">
-              <CardHeader>
-                <CardTitle>Team Output Performance</CardTitle>
-                <CardDescription>
-                  Output compared to targets
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {teamOutput.map((team) => (
-                    <div key={team.team} className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{team.team}</span>
-                        <span className="text-sm font-medium">
-                          {team.output >= team.target ? 
-                            <span className="text-green-600">{Math.round(team.output / team.target * 100)}%</span> :
-                            <span className="text-amber-600">{Math.round(team.output / team.target * 100)}%</span>
-                          }
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${team.output >= team.target ? 'bg-green-500' : 'bg-amber-500'}`}
-                          style={{ width: `${Math.min(Math.round(team.output / team.target * 100), 100)}%` }} 
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Output score: {team.output}</span>
-                        <span>Target: {team.target}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Financial Burn Summary */}
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Financial Burn Summary</CardTitle>
-              <CardDescription>
-                Billable vs. non-billable hours
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-3">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{financialSummary.totalLogged}h</div>
-                      <div className="text-sm font-medium mt-1">Total Hours</div>
-                      <div className="text-xs text-muted-foreground mt-1">All logged hours this month</div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{financialSummary.billable}h</div>
-                      <div className="text-sm font-medium mt-1">Billable Hours</div>
-                      <div className="text-xs text-muted-foreground mt-1">{financialSummary.utilization}% utilization rate</div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{financialSummary.nonBillable}h</div>
-                      <div className="text-sm font-medium mt-1">Non-Billable Hours</div>
-                      <div className="text-xs text-muted-foreground mt-1">{100 - financialSummary.utilization}% of total time</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <h3 className="text-sm font-medium mt-6 mb-3">Monthly Trends</h3>
-              <div className="space-y-4">
-                {financialSummary.monthlySummary.map((month) => (
-                  <div key={month.month} className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{month.month}</span>
-                      <span className="text-sm font-medium">{Math.round(month.billable / month.logged * 100)}% billable</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-3">
-                      <div 
-                        className="bg-primary h-3 rounded-full" 
-                        style={{ width: `${Math.round(month.billable / month.logged * 100)}%` }} 
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Total: {month.logged}h</span>
-                      <span>Billable: {month.billable}h</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="flex justify-center mt-6">
-                <Button asChild variant="outline">
-                  <Link href={getWorkspaceLink("/reports/financial")}>
-                    View Detailed Financial Report
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </>
+        </div>
       );
     } else if (dashboardRole === "account-manager") {
       // ... existing account manager dashboard placeholder code ...
